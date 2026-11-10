@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "tests": {
+    "ac": { "files": ["e2e/**/*.e2e.ts"], "run": ["npx", "playwright", "test"] },
+    "show": { "files": ["show/**/*.json"] }
+  },
+  "evidence": { "reports": ["test-results/**/*.xml"] },
+  "checks": {
+    "tiers": {
+      "slice": [
+        { "name": "types", "run": ["npx", "tsc", "--noEmit"], "when": "changed:src/**" },
+        { "name": "unit", "run": ["npx", "vitest", "run"], "when": "changed:src/**" }
+      ]
+    }
+  },
+  "preview": { "start": ["npx", "vite", "--port", "4173", "--strictPort"], "url": "http://localhost:4173" }
+}
