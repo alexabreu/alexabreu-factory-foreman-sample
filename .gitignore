@@ -3,3 +3,7 @@ dist/
 test-results/
 playwright-report/
 .factory-foreman/
+
+
+# APM dependencies
+apm_modules/
