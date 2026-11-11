@@ -1,4 +1,4 @@
-import { add, empty, type Filter, summary, toggle, visible } from './reading-list'
+import { add, empty, type Filter, remove, summary, toggle, visible } from './reading-list'
 
 let list = empty()
 let filter: Filter = 'all'
@@ -39,7 +39,7 @@ function render() {
       render()
       // render() replaces every row, so put keyboard focus back on this item's
       // checkbox, or on the filter when the item is no longer shown.
-      const again = items.querySelector<HTMLInputElement>(`[data-item-id="${item.id}"]`)
+      const again = items.querySelector<HTMLInputElement>(`[data-testid="item-toggle"][data-item-id="${item.id}"]`)
       ;(again ?? app.querySelector<HTMLSelectElement>('[data-testid="filter"]')!).focus()
     })
     const title = document.createElement('span')
@@ -49,10 +49,30 @@ function render() {
     // the checked state says whether it has been read.
     const label = document.createElement('label')
     label.append(box, title)
-    row.append(label)
+    const drop = document.createElement('button')
+    drop.type = 'button'
+    drop.textContent = 'Remove'
+    drop.dataset.testid = 'item-remove'
+    drop.dataset.itemId = String(item.id)
+    drop.setAttribute('aria-label', `Remove ${item.title}`)
+    drop.addEventListener('click', () => removeItem(item.id))
+    row.append(label, drop)
     return row
   }))
   status.textContent = summary(list)
+}
+
+// Removes a book, then puts focus back where the reader was: render() replaces
+// every row, so focus goes to the next shown row's Remove, else the previous
+// one, else the title field. It never falls to <body>.
+function removeItem(id: number) {
+  const shown = visible(list, filter).map(item => item.id)
+  const at = shown.indexOf(id)
+  list = remove(list, id)
+  render()
+  const next = shown[at + 1] ?? shown[at - 1]
+  const target = next === undefined ? null : items.querySelector<HTMLButtonElement>(`[data-testid="item-remove"][data-item-id="${next}"]`)
+  ;(target ?? input).focus()
 }
 
 app.querySelector('form')!.addEventListener('submit', event => {

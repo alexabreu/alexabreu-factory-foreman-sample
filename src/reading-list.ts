@@ -25,6 +25,13 @@ export function add(list: ReadingList, title: string): ReadingList {
   return { items: [ ...list.items, { id: list.nextId, title: clean, read: false } ], nextId: list.nextId + 1 }
 }
 
+// Deletes a book from the list. nextId stays as it is, so ids are never reused;
+// an unknown id leaves the list as it was.
+export function remove(list: ReadingList, id: number): ReadingList {
+  if (!list.items.some(item => item.id === id)) return list
+  return { ...list, items: list.items.filter(item => item.id !== id) }
+}
+
 export function toggle(list: ReadingList, id: number): ReadingList {
   return { ...list, items: list.items.map(item => (item.id === id ? { ...item, read: !item.read } : item)) }
 }
