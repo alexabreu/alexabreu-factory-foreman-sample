@@ -1,0 +1,8 @@
+name: factory-foreman-sample
+version: 0.0.1
+targets:
+  - claude
+  - codex
+dependencies:
+  apm:
+    - alexabreu/factory-foreman/packages/core/apm#v0.1.0-alpha.7

@@ -1,0 +1,48 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node \".codex/hooks/apm/guard/approve-guard.mjs\"",
+          "timeout": 90
+        }
+      ],
+      "_apm_source": "alexabreu/factory-foreman/packages/core/apm"
+    }
+  ],
+  "PreCompact": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node \".codex/hooks/apm/guard/capture-hook.mjs\""
+        }
+      ],
+      "_apm_source": "alexabreu/factory-foreman/packages/core/apm"
+    }
+  ],
+  "SessionEnd": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node \".codex/hooks/apm/guard/capture-hook.mjs\""
+        }
+      ],
+      "_apm_source": "alexabreu/factory-foreman/packages/core/apm"
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node \".codex/hooks/apm/guard/capture-hook.mjs\""
+        }
+      ],
+      "_apm_source": "alexabreu/factory-foreman/packages/core/apm"
+    }
+  ]
+}

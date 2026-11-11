@@ -14,6 +14,9 @@ importers:
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
+      factory-foreman:
+        specifier: github:alexabreu/factory-foreman#v0.1.0-alpha.7&path:/packages/core
+        version: https://codeload.github.com/alexabreu/factory-foreman/tar.gz/b584fa1eb7501173af7e6d9220f02a69f56b32d5#path:/packages/core
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -310,6 +313,12 @@ packages:
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
+
+  factory-foreman@https://codeload.github.com/alexabreu/factory-foreman/tar.gz/b584fa1eb7501173af7e6d9220f02a69f56b32d5#path:/packages/core:
+    resolution: {gitHosted: true, path: /packages/core, tarball: https://codeload.github.com/alexabreu/factory-foreman/tar.gz/b584fa1eb7501173af7e6d9220f02a69f56b32d5}
+    version: 0.1.0-alpha.0
+    engines: {node: ^22.18.0 || >=24.2.0}
+    hasBin: true
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -714,6 +723,8 @@ snapshots:
       '@types/estree': 1.0.10
 
   expect-type@1.4.0: {}
+
+  factory-foreman@https://codeload.github.com/alexabreu/factory-foreman/tar.gz/b584fa1eb7501173af7e6d9220f02a69f56b32d5#path:/packages/core: {}
 
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
