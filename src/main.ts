@@ -55,7 +55,11 @@ function render() {
     drop.dataset.testid = 'item-remove'
     drop.dataset.itemId = String(item.id)
     drop.setAttribute('aria-label', `Remove ${item.title}`)
-    drop.addEventListener('click', () => removeItem(item.id))
+    // The next row's Remove slides under the pointer, so a double-click or a
+    // held key would remove two books: only the first click of a burst, and no
+    // auto-repeated Enter or Space, removes one.
+    drop.addEventListener('click', event => { if (event.detail <= 1) removeItem(item.id) })
+    drop.addEventListener('keydown', event => { if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault() })
     row.append(label, drop)
     return row
   }))
