@@ -1,0 +1,21 @@
+{
+  "ac": "AC-1",
+  "says": "Three books, Dune read: every row has a Remove button in one column at the right edge. Removing Dune (read) moves the rows up and the summary goes from \"2 of 3 unread\" to \"2 of 2 unread\"; removing Emma (unread) gives \"1 of 1 unread\"; removing Hyperion, the last book, leaves an empty list with \"0 of 0 unread\".",
+  "url": "/",
+  "steps": [
+    { "fill": "new-title", "text": "Dune" },
+    { "click": "add" },
+    { "fill": "new-title", "text": "Emma" },
+    { "click": "add" },
+    { "fill": "new-title", "text": "Hyperion" },
+    { "click": "add" },
+    { "check": "item-toggle" },
+    { "wait": "item-remove" },
+    { "click": "item-remove" },
+    { "wait": "summary" },
+    { "click": "item-remove" },
+    { "wait": "summary" },
+    { "click": "item-remove" },
+    { "wait": "summary" }
+  ]
+}
