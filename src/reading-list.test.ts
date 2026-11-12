@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { add, empty, summary, toggle, visible } from './reading-list'
+import { add, clearRead, empty, summary, toggle, visible } from './reading-list'
 
 describe('reading list', () => {
   it('adds trimmed titles and refuses blanks and duplicates', () => {
@@ -19,5 +19,11 @@ describe('reading list', () => {
 
   it('summarizes what is left to read', () => {
     expect(summary(toggle(add(add(empty(), 'Dune'), 'Emma'), 2))).toBe('1 of 2 unread')
+  })
+
+  it('clears read items and keeps unread ones in order', () => {
+    const list = clearRead(toggle(add(add(add(empty(), 'Dune'), 'Emma'), 'Ubik'), 2))
+    expect(list.items.map(item => item.title)).toEqual([ 'Dune', 'Ubik' ])
+    expect(clearRead(empty()).items).toEqual([])
   })
 })
