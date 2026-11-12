@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: "artifact | open-pr | link-stack"
+        description: "artifact | open-pr | link-stack | merge"
         required: true
       issue:
         description: Issue number (artifact)
@@ -21,6 +21,12 @@ on:
         required: false
       prs:
         description: PR numbers, bottom first, space-separated (link-stack)
+        required: false
+      pr:
+        description: Slice PR number (merge)
+        required: false
+      sha:
+        description: Trail commit holding the approval record (merge)
         required: false
       correlation:
         description: Correlation id
@@ -41,6 +47,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.token.outputs.token }}
       - name: Act as the App
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
@@ -49,6 +56,8 @@ jobs:
           HEAD_BRANCH: ${{ inputs.head }}
           BASE_BRANCH: ${{ inputs.base }}
           PRS: ${{ inputs.prs }}
+          PR: ${{ inputs.pr }}
+          SHA: ${{ inputs.sha }}
           CORRELATION: ${{ inputs.correlation }}
           ACTOR: ${{ github.actor }}
         run: |
@@ -75,6 +84,24 @@ jobs:
               gh extension install github/gh-stack
               # shellcheck disable=SC2086
               gh stack link --base "$BASE_BRANCH" $PRS
+              ;;
+            merge)
+              # S3: merge a slice after the person's approval in chat. The approval is a
+              # record on the trail branch; it must name this PR and its exact diff.
+              [[ "$PR" =~ ^[0-9]+$ && "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "pr must be a number and sha 40 hex"; exit 1; }
+              git fetch -q origin factory-foreman-trail/spike
+              git merge-base --is-ancestor "$SHA" FETCH_HEAD || { echo "sha is not on the trail branch"; exit 1; }
+              record=$(git show "$SHA:trail/approvals/$PR.json")
+              want_pr=$(jq -r .pr <<<"$record"); want_patch=$(jq -r .patch_id <<<"$record"); who=$(jq -r .approver <<<"$record")
+              [[ "$want_pr" == "$PR" ]] || { echo "the record is for PR $want_pr"; exit 1; }
+              base=$(gh pr view "$PR" --json baseRefName -q .baseRefName); head=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
+              git fetch -q origin "$base" "$head"
+              actual=$(git diff "origin/$base...$head" | git patch-id --stable | cut -d' ' -f1)
+              [[ "$actual" == "$want_patch" ]] || { echo "the approved diff ($want_patch) isn't the PR's diff now ($actual)"; exit 1; }
+              echo "Approved by $who in chat; merging PR $PR at $head for $ACTOR"
+              gh extension install github/gh-stack
+              gh stack checkout "$PR"
+              gh stack merge "$PR" --squash --yes
               ;;
             *) echo "unknown operation"; exit 1 ;;
           esac
