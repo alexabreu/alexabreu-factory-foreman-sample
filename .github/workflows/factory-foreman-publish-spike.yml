@@ -1,0 +1,80 @@
+# Spike S2, S3 and S6 for factory-foreman's publish workflow. It runs only from
+# the default branch (the environment allows main only), mints a short-lived App
+# token from the environment's secret, and acts as the App. Inputs reach the
+# scripts through environment variables, never interpolated into run lines.
+name: factory-foreman publish (spike)
+run-name: "factory-foreman ${{ inputs.operation }} ${{ inputs.correlation }}"
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "artifact | open-pr | link-stack"
+        required: true
+      issue:
+        description: Issue number (artifact)
+        required: false
+      head:
+        description: Head branch (open-pr)
+        required: false
+      base:
+        description: Base branch (open-pr, link-stack)
+        required: false
+      prs:
+        description: PR numbers, bottom first, space-separated (link-stack)
+        required: false
+      correlation:
+        description: Correlation id
+        required: true
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: factory-foreman-publish
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.FF_APP_ID }}
+          private-key: ${{ secrets.FF_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Act as the App
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          OP: ${{ inputs.operation }}
+          ISSUE: ${{ inputs.issue }}
+          HEAD_BRANCH: ${{ inputs.head }}
+          BASE_BRANCH: ${{ inputs.base }}
+          PRS: ${{ inputs.prs }}
+          CORRELATION: ${{ inputs.correlation }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          case "$OP" in
+            artifact)
+              [[ "$ISSUE" =~ ^[0-9]+$ ]] || { echo "issue must be a number"; exit 1; }
+              python3 - <<'PY'
+          import struct, zlib
+          def png(path, rgb):
+              raw = b''.join(b'\x00' + bytes(rgb) * 120 for _ in range(60))
+              c = lambda t, d: struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
+              open(path, 'wb').write(b'\x89PNG\r\n\x1a\n' + c(b'IHDR', struct.pack('>IIBBBBB', 120, 60, 8, 2, 0, 0, 0)) + c(b'IDAT', zlib.compress(raw)) + c(b'IEND', b''))
+          png('before.png', (200, 60, 60)); png('after.png', (60, 160, 60))
+          PY
+              gh issue artifact create "$ISSUE" --name "S6 as the App" --body "Posted by the publish workflow for $ACTOR ($CORRELATION)." --attach "before.png#Before" --attach "after.png#After"
+              ;;
+            open-pr)
+              [[ "$HEAD_BRANCH" =~ ^[A-Za-z0-9._/-]+$ && "$BASE_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "bad branch name"; exit 1; }
+              gh pr create --head "$HEAD_BRANCH" --base "$BASE_BRANCH" --title "Spike S2: PR opened by the App" --body "Opened by the publish workflow for $ACTOR ($CORRELATION)."
+              ;;
+            link-stack)
+              [[ "$PRS" =~ ^[0-9\ ]+$ && "$BASE_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "bad input"; exit 1; }
+              gh extension install github/gh-stack
+              # shellcheck disable=SC2086
+              gh stack link --base "$BASE_BRANCH" $PRS
+              ;;
+            *) echo "unknown operation"; exit 1 ;;
+          esac
