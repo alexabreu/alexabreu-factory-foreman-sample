@@ -29,6 +29,11 @@ export function toggle(list: ReadingList, id: number): ReadingList {
   return { ...list, items: list.items.map(item => (item.id === id ? { ...item, read: !item.read } : item)) }
 }
 
+// Removes every item already read; unread items keep their order and ids.
+export function clearRead(list: ReadingList): ReadingList {
+  return { ...list, items: list.items.filter(item => !item.read) }
+}
+
 export function visible(list: ReadingList, filter: Filter): Item[] {
   if (filter === 'all') return list.items
   return list.items.filter(item => item.read === (filter === 'read'))
