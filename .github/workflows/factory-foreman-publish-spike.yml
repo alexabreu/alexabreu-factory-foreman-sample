@@ -14,7 +14,7 @@ on:
         description: Issue number (artifact)
         required: false
       head:
-        description: Head branch (open-pr)
+        description: Head branch (open-pr), or the approved head SHA (merge)
         required: false
       base:
         description: Base branch (open-pr, link-stack)
@@ -25,8 +25,14 @@ on:
       pr:
         description: Slice PR number (merge)
         required: false
-      sha:
-        description: Trail commit holding the approval record (merge)
+      patch_id:
+        description: The approved diff's patch id (merge)
+        required: false
+      approver:
+        description: The approving person's account id (merge)
+        required: false
+      message_id:
+        description: The chat message or card that approved it (merge)
         required: false
       correlation:
         description: Correlation id
@@ -57,7 +63,9 @@ jobs:
           BASE_BRANCH: ${{ inputs.base }}
           PRS: ${{ inputs.prs }}
           PR: ${{ inputs.pr }}
-          SHA: ${{ inputs.sha }}
+          PATCH_ID: ${{ inputs.patch_id }}
+          APPROVER: ${{ inputs.approver }}
+          MESSAGE_ID: ${{ inputs.message_id }}
           CORRELATION: ${{ inputs.correlation }}
           ACTOR: ${{ github.actor }}
         run: |
@@ -86,19 +94,17 @@ jobs:
               gh stack link --base "$BASE_BRANCH" $PRS
               ;;
             merge)
-              # S3: merge a slice after the person's approval in chat. The approval is a
-              # record on the trail branch; it must name this PR and its exact diff.
-              [[ "$PR" =~ ^[0-9]+$ && "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "pr must be a number and sha 40 hex"; exit 1; }
-              git fetch -q origin factory-foreman-trail/spike
-              git merge-base --is-ancestor "$SHA" FETCH_HEAD || { echo "sha is not on the trail branch"; exit 1; }
-              record=$(git show "$SHA:trail/approvals/$PR.json")
-              want_pr=$(jq -r .pr <<<"$record"); want_patch=$(jq -r .patch_id <<<"$record"); who=$(jq -r .approver <<<"$record")
-              [[ "$want_pr" == "$PR" ]] || { echo "the record is for PR $want_pr"; exit 1; }
-              base=$(gh pr view "$PR" --json baseRefName -q .baseRefName); head=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
-              git fetch -q origin "$base" "$head"
-              actual=$(git diff "origin/$base...$head" | git patch-id --stable | cut -d' ' -f1)
-              [[ "$actual" == "$want_patch" ]] || { echo "the approved diff ($want_patch) isn't the PR's diff now ($actual)"; exit 1; }
-              echo "Approved by $who in chat; merging PR $PR at $head for $ACTOR"
+              # S3: merge a slice after the person's approval in chat. The approval
+              # travels as this run's inputs (GitHub records who started the run); the
+              # issue is the only record, so there's no trail branch to read.
+              [[ "$PR" =~ ^[0-9]+$ && "$HEAD_BRANCH" =~ ^[0-9a-f]{40}$ && "$PATCH_ID" =~ ^[0-9a-f]{40}$ ]] || { echo "pr must be a number, head and patch_id 40 hex"; exit 1; }
+              [[ "$APPROVER" =~ ^[A-Za-z0-9_-]{1,100}$ && "$MESSAGE_ID" =~ ^[A-Za-z0-9_-]{1,100}$ ]] || { echo "approver and message_id must be ids"; exit 1; }
+              base=$(gh pr view "$PR" --json baseRefName -q .baseRefName); now=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
+              [[ "$now" == "$HEAD_BRANCH" ]] || { echo "the PR's head is $now now, not the approved $HEAD_BRANCH"; exit 1; }
+              git fetch -q origin "$base" "$now"
+              actual=$(git diff "origin/$base...$now" | git patch-id --stable | cut -d' ' -f1)
+              [[ "$actual" == "$PATCH_ID" ]] || { echo "the approved diff ($PATCH_ID) isn't the PR's diff now ($actual)"; exit 1; }
+              echo "Approved by $APPROVER in chat ($MESSAGE_ID); merging PR $PR at $now for $ACTOR"
               gh extension install github/gh-stack
               gh stack checkout "$PR"
               gh stack merge "$PR" --squash --yes
